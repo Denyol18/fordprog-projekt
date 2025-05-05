@@ -1,8 +1,8 @@
 import java.util.*;
 
 /**
- * Az {@code EvalVisitor} osztály a {@link PolynomialBaseVisitor} osztály gyerekosztálya azzal a célal, hogy
- * a legenerált kifejezéseket kezelje. Változó deklarációkat kezel, értékadásokat,
+ * Az {@code EvalVisitor} osztály a {@link PolynomialBaseVisitor} gyerekosztálya azzal a célal, hogy
+ * a legenerált kifejezéseket "meglátogassa", kezelje. Változó deklarációkat kezel, értékadásokat,
  * kiértékeléseket, és műveleteket polinomokon és számokon.
  */
 public class EvalVisitor extends PolynomialBaseVisitor<Object> {
@@ -21,6 +21,7 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
      */
     @Override
     public Object visitStatement(PolynomialParser.StatementContext ctx) {
+        // Deklaráció kezelés.
         if (ctx.getText().startsWith("polynom")) {
             for (var id : ctx.ID()) {
                 polynomials.put(id.getText(), new Polynomial());
@@ -29,25 +30,25 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
             for (var id : ctx.ID()) {
                 numbers.put(id.getText(), 0.0);
             }
-        } else if (ctx.getText().startsWith("show")) {
+        } else if (ctx.getText().startsWith("show")) {   // Kiíratás kezelés.
             Object value = visit(ctx.expr());
             System.out.println(value);
-        } else if (ctx.ID() != null && ctx.expr() != null) {
+        } else if (ctx.ID() != null && ctx.expr() != null) {   // Értékadás kezelés.
             String name = ctx.ID(0).getText();
             Object value = visit(ctx.expr());
 
             if (value instanceof Polynomial) {
                 if (!polynomials.containsKey(name)) {
-                    throw new RuntimeException("Hibás hozzárendelés: A(z) '" + name + "' polinom nincs deklarálva.");
+                    throw new RuntimeException("Hibás értékadás: A(z) '" + name + "' polinom nincs deklarálva.");
                 }
                 polynomials.put(name, (Polynomial) value);
             } else if (value instanceof Double) {
                 if (!numbers.containsKey(name)) {
-                    throw new RuntimeException("Hibás hozzárendelés: A(z) '" + name + "' szám nincs deklarálva.");
+                    throw new RuntimeException("Hibás értékadás: A(z) '" + name + "' szám nincs deklarálva.");
                 }
                 numbers.put(name, (Double) value);
             } else {
-                throw new RuntimeException("Ismeretlen érték típusa a hozzárendeléshez: " + value);
+                throw new RuntimeException("Ismeretlen típusú érték értékadáskor: " + value);
             }
         }
         return null;
@@ -81,7 +82,7 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
     }
 
     /**
-     * Delegálja a polinomiális kifejezés kiértékelését.
+     * Delegálja a visitPolynomial metódus számára a polinom kiértékelését.
      */
     @Override
     public Object visitPolynomialExpr(PolynomialParser.PolynomialExprContext ctx) {
@@ -89,24 +90,24 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
     }
 
     /**
-     * Elemzi és létrehoz egy {@code Polynomial}-t a PolynomialContext-ből.
+     * Elemez majd létrehoz egy {@code Polynomial}-t a PolynomialContext-ből.
      */
     @Override
     public Object visitPolynomial(PolynomialParser.PolynomialContext ctx) {
         List<Term> terms = new ArrayList<>();
 
-        // Első tag mindig pozitív
+        // Első tag.
         Term firstTerm = visitPolyTerm(ctx.polyTerm(0));
         terms.add(firstTerm);
 
         int counter = 0;
-        // Minden következő tag előtt van egy műveleti jel
+        // Minden következő tag előtt van egy műveleti jel.
         for (int i = 1; i < ctx.polyTerm().size(); i++) {
             Term t = visitPolyTerm(ctx.polyTerm(i));
-            String op = ctx.getChild(counter+2).getText(); // műveleti jel: '+' vagy '-'
+            String op = ctx.getChild(counter+2).getText();   // A műveleti jel vagy '+' vagy '-'.
 
             if (op.equals("-")) {
-                t.coeff *= -1; // ha '-' volt, akkor negáljuk az együtthatót
+                t.coeff *= -1;   // Ha '-' volt, akkor negáljuk az együtthatót.
             }
             terms.add(t);
             counter += 2;
@@ -116,7 +117,7 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
     }
 
     /**
-     * Elemzi és létrehoz egy {@code Term} objektumot a PolyTermContext-ből.
+     * Elemez majd létrehoz egy {@code Term} objektumot a PolyTermContext-ből.
      */
     @Override
     public Term visitPolyTerm(PolynomialParser.PolyTermContext ctx) {
@@ -125,10 +126,11 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
         String text = ctx.getText();
 
         if (!text.contains("x")) {
-            // Pure constant term
-            if (ctx.NUM().size() == 1) {
+            // Ha a tagban nincs x -> konstans érték:
+            if (ctx.NUM().size() == 1) {   // pl.: 5
                 coeff = Double.parseDouble(ctx.NUM(0).getText());
             } else if (ctx.ID() != null) {
+                // pl.: c (c egy változó)
                 String id = ctx.ID().getText();
                 if (!numbers.containsKey(id)) {
                     throw new RuntimeException("Ismeretlen konstans változó: " + id);
@@ -137,36 +139,37 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
             }
             exp = 0;
         } else {
-            // Term includes x
+            // A tagban van x:
             if (ctx.NUM().size() == 2) {
-                // e.g., 2.5 x^2 or b x^2
+                // pl.: 2.5x^2
                 String coeffStr = ctx.getChild(0).getText();
                 coeff = resolveCoefficient(coeffStr);
                 exp = (int) Double.parseDouble(ctx.NUM(1).getText());
             } else if (ctx.NUM().size() == 1) {
                 if (text.contains("^")) {
-                    // e.g., x^2 or b x^2
                     if (text.startsWith("x")) {
+                        // pl.: x^3
                         coeff = 1.0;
                         exp = (int) Double.parseDouble(ctx.NUM(0).getText());
                     } else {
+                        // pl.: b x^3 (b egy változó)
                         String coeffStr = ctx.getChild(0).getText();
                         coeff = resolveCoefficient(coeffStr);
                         exp = (int) Double.parseDouble(ctx.NUM(0).getText());
                     }
                 } else {
-                    // e.g., 3 x or b x
+                    // pl.: 3x
                     String coeffStr = ctx.getChild(0).getText();
                     coeff = resolveCoefficient(coeffStr);
                     exp = 1;
                 }
             } else if (ctx.NUM().isEmpty() && ctx.ID() != null && text.contains("x")) {
-                // e.g., a x
+                // pl.: a x (a egy változó)
                 String coeffStr = ctx.getChild(0).getText();
                 coeff = resolveCoefficient(coeffStr);
                 exp = 1;
             } else {
-                // e.g., just x or x^2
+                // pl.: x
                 coeff = 1.0;
                 exp = text.contains("^") ? Integer.parseInt(text.split("\\^")[1]) : 1;
             }
@@ -231,7 +234,7 @@ public class EvalVisitor extends PolynomialBaseVisitor<Object> {
      *
      * @param left bal oldali operandus.
      * @param right jobb oldali operandus.
-     * @param op művelet szimbóluma.
+     * @param op az elvégzendő művelet.
      * @return az alkalmazott művelet eredménye.
      */
     private Object applyBinaryOp(Object left, Object right, String op) {

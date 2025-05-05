@@ -1,10 +1,10 @@
 import java.util.*;
 
 /**
- * Valós együtthatókkal és egész kitevőkkel rendelkező polinomot képvisel.
+ * Valós együtthatókkal és egész kitevőkkel rendelkező tagokból álló polinomot ír le.
  * Támogatja az olyan aritmetikai műveleteket, mint az összeadás, kivonás, szorzás,
  * osztás (hányados), és modulo (maradék).
- * Polinomot még kiértékelni és stringként ábrázolni is lehet.
+ * Ezeken kívül még kiértékelni és stringként ábrázolni is lehet a polinomot.
  */
 public class Polynomial {
     /**
@@ -49,7 +49,7 @@ public class Polynomial {
      * @return az eredményül kapott polinom.
      */
     public Polynomial add(Polynomial other) {
-        Polynomial result = new Polynomial();
+        Polynomial result = new Polynomial();   // Az eredményt egy új polinom példányként kezeljük.
         this.terms.forEach((exp, coeff) -> result.terms.put(exp, coeff));
         other.terms.forEach((exp, coeff) -> result.terms.merge(exp, coeff, Double::sum));
         return result;
@@ -62,8 +62,9 @@ public class Polynomial {
      * @return az eredményül kapott polinom.
      */
     public Polynomial subtract(Polynomial other) {
+        // A paraméterben kapott polinomot beszorozzuk -1-el:
         Polynomial neg = other.multiply(new Polynomial(List.of(new Term(-1, 0))));
-        return this.add(neg);
+        return this.add(neg);   // Majd a negált polinomot hozzáadjuk az aktuálishoz.
     }
 
     /**
@@ -73,7 +74,8 @@ public class Polynomial {
      * @return az eredményül kapott polinom.
      */
     public Polynomial multiply(Polynomial other) {
-        Polynomial result = new Polynomial();
+        Polynomial result = new Polynomial();   // Az eredményt egy új polinom példányként kezeljük.
+        // Az egyes tagokat összeszorozzuk a másikból származó tagokkal.
         for (var e1 : terms.entrySet()) {
             for (var e2 : other.terms.entrySet()) {
                 int newExp = e1.getKey() + e2.getKey();
@@ -85,25 +87,31 @@ public class Polynomial {
     }
 
     /**
-     * Az aktuális polinomot ossza el egy másikkal és visszadja a hányadost.
+     * Az aktuális polinomot ossza el egy másikkal és visszaadja a hányadost.
      *
      * @param divisor a másik polinom amivel osztunk.
      * @return a hányados polinomként.
      */
     public Polynomial divide(Polynomial divisor) {
+        // A hányados és maradék polinom példányként:
         Polynomial quotient = new Polynomial();
         Polynomial remainder = new Polynomial(new ArrayList<>(this.toTermList()));
 
+        // A ciklus addig fut, amíg a maradék nulla vagy a maradék foka kisebb az osztó fokánál.
         while (!remainder.isZero() && remainder.getMaxExp() >= divisor.getMaxExp()) {
+            // Elosszuk a vezető tagokat, hogy megkapjuk a következő hányados tag együtthatóját és kitevőjét.
             int expDiff = remainder.getMaxExp() - divisor.getMaxExp();
             double coeffRatio = remainder.getLeadingCoeff() / divisor.getLeadingCoeff();
 
+            // Polinomot konstruálunk.
             Polynomial termPoly = new Polynomial();
             termPoly.terms.put(expDiff, coeffRatio);
 
+            // Ezt a polinomot hozzáadjuk a hányadoshoz.
             quotient = quotient.add(termPoly);
-            Polynomial subtract = divisor.multiply(termPoly);
-            remainder = remainder.subtract(subtract);
+            // Majd kivonjuk a maradékból.
+            Polynomial subtractPoly = divisor.multiply(termPoly);
+            remainder = remainder.subtract(subtractPoly);
             remainder.cleanUpTinyCoefficients();
         }
 
@@ -111,23 +119,27 @@ public class Polynomial {
     }
 
     /**
-     * Az aktuális polinomot ossza el egy másikkal és visszadja a maradékot.
+     * Az aktuális polinomot ossza el egy másikkal és visszaadja a maradékot.
      *
      * @param divisor a másik polinom amivel osztunk.
      * @return a maradék polinomként.
      */
     public Polynomial mod(Polynomial divisor) {
+        // A maradék polinom példányként:
         Polynomial remainder = new Polynomial(new ArrayList<>(this.toTermList()));
 
+        // A ciklus addig fut, amíg a maradék nulla vagy a maradék foka kisebb az osztó fokánál.
         while (!remainder.isZero() && remainder.getMaxExp() >= divisor.getMaxExp()) {
             int expDiff = remainder.getMaxExp() - divisor.getMaxExp();
             double coeffRatio = remainder.getLeadingCoeff() / divisor.getLeadingCoeff();
 
+            // Polinomot konstruálunk.
             Polynomial termPoly = new Polynomial();
             termPoly.terms.put(expDiff, coeffRatio);
 
-            Polynomial subtract = divisor.multiply(termPoly);
-            remainder = remainder.subtract(subtract);
+            // Ezt a polinomot kivonjuk a maradékból.
+            Polynomial subtractPoly = divisor.multiply(termPoly);
+            remainder = remainder.subtract(subtractPoly);
             remainder.cleanUpTinyCoefficients();
         }
 
@@ -137,7 +149,7 @@ public class Polynomial {
     /**
      * Kiértékeli a polinomot egy adott x értéknél.
      *
-     * @param x az érték, amelyen a polinomot ki kell értékelni.
+     * @param x az érték, amelyen a polinomot kell kiértékelni.
      * @return a kiértékelés eredménye, a polinom összes tagja szummázva.
      */
     public double evaluate(double x) {
@@ -208,20 +220,21 @@ public class Polynomial {
 
             if (Math.abs(coeff) < 1e-9) continue;
 
+            // Polinom nem első tagjai elé "+".
             if (sb.length() > 0) sb.append(coeff >= 0 ? "+" : "");
 
             if (exp == 0) {
-                sb.append(coeff);
+                sb.append(coeff);    // Csak az együttható.
             } else {
                 if (Math.abs(coeff - 1.0) > 1e-9 && Math.abs(coeff + 1.0) > 1e-9) {
-                    sb.append(coeff);
+                    sb.append(coeff);   // Ha az együttható nem 1 vagy -1.
                 } else if (Math.abs(coeff + 1.0) < 1e-9) {
-                    sb.append("-");
+                    sb.append("-");   // Ha az együttható -1.
                 }
 
-                sb.append("x");
+                sb.append("x");   // X minden nem 0 kitevőjű taghoz.
                 if (exp != 1) {
-                    sb.append("^").append(exp);
+                    sb.append("^").append(exp);   // Ha a kitevő nem 1.
                 }
             }
         }

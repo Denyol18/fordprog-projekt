@@ -1,13 +1,13 @@
 /**
-*Egy polinom egyetlen tagját képviseli, például 3x^2 vagy -5.
+*Egy polinom egyetlen tagját írja le, például 3x^2 vagy -5.
 */
 public class Term {
     /**
-     * A kifejezés együtthatója (pl. 3 a 3x^2-ben).
+     * A tag együtthatója (pl. 3 a 3x^2-ben).
      */
     public double coeff;
     /**
-     * A kifejezés kitevője (pl. 2 a 3x^2-ben).
+     * A tag kitevője (pl. 2 a 3x^2-ben).
      */
     public int exp;
 
@@ -33,8 +33,8 @@ public class Term {
      */
     @Override
     public String toString() {
-        if (exp == 0) return "" + coeff;
-        if (coeff == 1) return "x^" + exp;
-        return coeff + "x^" + exp;
+        if (exp == 0) return "" + coeff;     // 5.0
+        if (coeff == 1) return "x^" + exp;   // x^2
+        return coeff + "x^" + exp;           // 5x^3
     }
 }
