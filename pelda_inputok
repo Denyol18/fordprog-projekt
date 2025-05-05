@@ -5,8 +5,8 @@ Az src/Main.java-ban lévő "String input" változónak kell értéket adni, úg
 Első példa input:
 
 // deklarációk:
-olynom p_1, p_2;
-umber num_1;
+polynom p_1, p_2;
+number num_1;
 
 // értékadások:
 num_1 = ((2+10*4)/2)%2;
